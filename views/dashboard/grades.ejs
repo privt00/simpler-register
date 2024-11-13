@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notenübersicht</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex">
+
+  <aside id="sidebar" class="bg-neutral-100 border-r border-neutral-800/20 w-64 p-6 space-y-4 hidden md:block h-screen">
+    <h2 class="text-2xl font-bold mb-6 text-neutral-950">Navigation</h2>
+    <nav class="space-y-2">
+      <a href="/" class="block px-4 py-2 hover:bg-neutral-400/20 transition-colors duration-350 rounded-md text-neutral-900">Stundenplan</a>
+      <a href="/grades" class="block px-4 py-2 hover:bg-neutral-400/20 rounded-md duration-350 text-neutral-900">Noten</a>
+      <a href="/settings" class="block px-4 py-2 hover:bg-neutral-400/20 rounded-md duration-350 text-neutral-900">Einstellungen</a>
+    </nav>
+    <div class="mt-auto">
+      <a href="/logout" class="block px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-md">Logout</a>
+    </div>
+  </aside>
+
+
+
+  <button id="menuButton" class="md:hidden absolute top-4 left-4 text-2xl text-gray-800" onclick="toggleSidebar()">&#9776;</button>
+
+
+  <div class="flex-1 p-6">
+    <div class="bg-white shadow-lg rounded-lg p-6">
+      <h3 class="text-2xl font-semibold text-gray-800 mb-4">Notenübersicht</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="gradeCardsContainer">
+
+
+      </div>
+    </div>
+  </div>
+
+  <div id="examModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+      <button onclick="closeModal()" class="absolute top-2 right-2 text-gray-600 hover:text-gray-900 text-4xl">&times;</button>
+      <h4 id="modalSubject" class="text-xl font-semibold mb-4"></h4>
+      <ul id="examList" class="space-y-4">
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    let gradesBySubject = <%- JSON.stringify(gradesBySubject) %>;
+
+    gradesBySubject = Object.entries(gradesBySubject)
+      .sort((a, b) => parseFloat(b[1].average) - parseFloat(a[1].average))
+      .reduce((sorted, [key, value]) => ({ ...sorted, [key]: value }), {});
+
+    function renderGradeCards() {
+      const gradeCardsContainer = document.getElementById("gradeCardsContainer");
+      gradeCardsContainer.innerHTML = '';
+      Object.keys(gradesBySubject).forEach(subject => {
+        const subjectData = gradesBySubject[subject];
+        if (subjectData.average !== "Keine bewerteten Noten") {
+          const card = document.createElement("div");
+          card.className = "bg-blue-200 rounded-lg p-6 shadow-md cursor-pointer hover:bg-blue-100 transition-colors";
+          card.onclick = () => openModal(subject);
+
+          card.innerHTML = `
+            <h4 class="text-lg font-semibold text-gray-800 mb-1">${subject}</h4>
+            <p class="text-xl text-gray-600">Durchschnitt: ${subjectData.average}</p>
+          `;
+          gradeCardsContainer.appendChild(card);
+        }
+      });
+    }
+
+    function openModal(subject) {
+      document.getElementById('modalSubject').innerText = subject;
+      const exams = gradesBySubject[subject].exams;
+      const examList = document.getElementById('examList');
+      examList.innerHTML = '';
+
+      exams.forEach(exam => {
+        const examItem = document.createElement('li');
+        examItem.classList.add('bg-gray-100', 'p-4', 'rounded-lg', 'shadow-sm');
+        examItem.innerHTML = `
+          <p><strong>Datum:</strong> ${new Date(exam.date).toLocaleDateString()}</p>
+          <p><strong>Note:</strong> ${exam.grade}</p>
+          <p><strong>Typ:</strong> ${exam.type}</p>
+          <p><strong>Beschreibung:</strong> ${exam.text}</p>
+          <p><strong>Lehrer:</strong> ${exam.teacher}</p>
+          <p><strong>Raum:</strong> ${exam.room}</p>
+        `;
+        examList.appendChild(examItem);
+      });
+
+      document.getElementById('examModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('examModal').classList.add('hidden');
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const menuButton = document.getElementById('menuButton');
+      sidebar.classList.toggle('hidden');
+      menuButton.classList.toggle('text-gray-600');
+      menuButton.classList.toggle('text-gray-800');
+    }
+
+    renderGradeCards();
+  </script>
+
+</body>
+</html>
